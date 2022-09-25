@@ -84,6 +84,8 @@ class CredentialSerializer(NotEmptySerializer):
             validated_data = self.validate_satellite_cred(attrs)
         elif cred_type == Credential.NETWORK_CRED_TYPE:
             validated_data = self.validate_host_cred(attrs)
+        elif cred_type == Credential.OPENSHIFT_CRED_TYPE:
+            validated_data = self.validate_openshift_cred(attrs)
         else:
             raise ValidationError({"cred_type": messages.UNKNOWN_CRED_TYPE})
         return validated_data
@@ -198,9 +200,25 @@ class CredentialSerializer(NotEmptySerializer):
         )
         return attrs
 
+    def validate_openshift_cred(self, attrs):
+        """Validate the attributes for openshift credentials."""
+        # Required field for OpenShift credential
+        if not self.partial:
+            auth_token = attrs.get("auth_token")
+
+        if not auth_token:
+            error = {"auth_token": [_(messages.OPENSHIFT_CRED_REQUIRED_FIELD)]}
+            raise ValidationError(error)
+
+        self._check_for_disallowed_fields(
+            Credential.OPENSHIFT_CRED_TYPE, attrs, messages.OPENSHIFT_FIELD_NOT_ALLOWED
+        )
+        return attrs
+
     def _check_for_disallowed_fields(self, credential_type, attrs, message):
         """Check if forbidden fields are being passed to credentials."""
         required_fields_map = {
+            Credential.OPENSHIFT_CRED_TYPE: {"id", "name", "cred_type", "auth_token"},
             Credential.VCENTER_CRED_TYPE: {
                 "cred_type",
                 "id",
