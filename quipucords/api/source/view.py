@@ -16,7 +16,11 @@ from django.db import transaction
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext as _
-from django_filters.rest_framework import CharFilter, DjangoFilterBackend, FilterSet
+from django_filters.rest_framework import (  # noqa I201
+    CharFilter,
+    DjangoFilterBackend,
+    FilterSet,
+)
 from rest_framework import status
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.filters import OrderingFilter
@@ -25,7 +29,7 @@ from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 from rest_framework.viewsets import ModelViewSet
 
-from api import messages
+from api import messages  # noqa I100
 from api.common.util import (
     convert_to_boolean,
     expand_scanjob_with_times,
