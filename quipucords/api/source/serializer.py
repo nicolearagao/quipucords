@@ -104,6 +104,7 @@ class SourceSerializer(NotEmptySerializer):
         valid_net_options = ["use_paramiko"]
         valid_vc_options = ["ssl_cert_verify", "ssl_protocol", "disable_ssl"]
         valid_sat_options = ["ssl_cert_verify", "ssl_protocol", "disable_ssl"]
+        valid_openshift_options = ["ssl_cert_verify", "ssl_protocol", "disable_ssl"]
 
         if source_type == Source.SATELLITE_SOURCE_TYPE:
             cls._check_for_disallowed_fields(
@@ -129,6 +130,14 @@ class SourceSerializer(NotEmptySerializer):
                 messages.NET_SSL_OPTIONS_NOT_ALLOWED,
                 valid_net_options,
             )
+        elif source_type == Source.OPENSHIFT_SOURCE_TYPE:
+            cls._check_for_disallowed_fields(
+                options,
+                messages.OPENSHIFT_INVALID_OPTIONS,
+                valid_openshift_options,
+            )
+            if options.get("ssl_cert_verify") is None:
+                options["ssl_cert_verify"] = True
 
     @classmethod
     def _check_for_disallowed_fields(cls, options, message, valid_fields):
@@ -175,6 +184,8 @@ class SourceSerializer(NotEmptySerializer):
             validated_data = self.validate_vcenter_source(attrs, source_type)
         elif source_type == Source.SATELLITE_SOURCE_TYPE:
             validated_data = self.validate_satellite_source(attrs, source_type)
+        elif source_type == Source.OPENSHIFT_SOURCE_TYPE:
+            validated_data = self.validate_openshift_source(attrs, source_type)
         else:
             raise ValidationError({"source_type": messages.UNKNOWN_SOURCE_TYPE})
         return validated_data
@@ -207,6 +218,7 @@ class SourceSerializer(NotEmptySerializer):
         elif not options and source_type in (
             Source.SATELLITE_SOURCE_TYPE,
             Source.VCENTER_SOURCE_TYPE,
+            Source.OPENSHIFT_SOURCE_TYPE,
         ):
             self._make_ssl_cert_verify_true(source)
 
@@ -592,6 +604,23 @@ class SourceSerializer(NotEmptySerializer):
         port = self.instance.port if self.instance else attrs.get("port")
         if not port:
             attrs["port"] = 443
+        if credentials:
+            self._validate_number_hosts_and_credentials(
+                hosts_list,
+                source_type,
+                credentials,
+                exclude_hosts_list,
+            )
+        return attrs
+
+    def validate_openshift_source(self, attrs, source_type):
+        """Validate the attributes for OpenShift source."""
+        credentials = attrs.get("credentials")
+        hosts_list = attrs.get("hosts")
+        exclude_hosts_list = attrs.get("exclude_hosts")
+        port = self.instance.port if self.instance else attrs.get("port")
+        if not port:
+            attrs["port"] = 6443
         if credentials:
             self._validate_number_hosts_and_credentials(
                 hosts_list,
