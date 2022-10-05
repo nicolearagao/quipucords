@@ -327,6 +327,7 @@ class SourceSerializer(NotEmptySerializer):
         return name
 
     # pylint: disable=too-many-locals, too-many-branches, too-many-statements
+    # pylint: disable=consider-using-f-string
     @staticmethod
     def validate_ipaddr_list(hosts):
         """Make sure the hosts list is present and has valid IP addresses."""
@@ -342,7 +343,8 @@ class SourceSerializer(NotEmptySerializer):
 
         for host_value in ipaddr_list:
             if not isinstance(host_value, str):
-                raise ValidationError(_(messages.SOURCE_HOST_MUST_BE_JSON_ARRAY))
+                raise ValidationError(
+                    _(messages.SOURCE_HOST_MUST_BE_JSON_ARRAY))
 
         # Regex for octet, CIDR bit range, and check
         # to see if it is like an IP/CIDR
@@ -405,7 +407,8 @@ class SourceSerializer(NotEmptySerializer):
             is_likely_invalid_ip_range = any(invalid_ip_range_match)
 
             if is_likely_invalid_ip_range:
-                err_message = _(messages.NET_INVALID_RANGE_FORMAT % (host_range,))
+                err_message = _(messages.NET_INVALID_RANGE_FORMAT %
+                                (host_range,))
                 result = ValidationError(err_message)
 
             elif is_likely_ip or is_likely_cidr:
@@ -489,9 +492,9 @@ class SourceSerializer(NotEmptySerializer):
 
         try:
             base_address, prefix_bits = ip_range.split("/")
-        except ValueError:
+        except ValueError as err:
             err_msg = _(messages.NET_CIDR_INVALID % (ip_range,))
-            raise ValidationError(err_msg)
+            raise ValidationError(err_msg) from err
 
         prefix_bits = int(prefix_bits)
 
@@ -544,7 +547,7 @@ class SourceSerializer(NotEmptySerializer):
 
                 lower_bound = octets[i] & mask
                 upper_bound = lower_bound + ~mask
-                ansible_out[i] = "[{0}:{1}]".format(lower_bound, upper_bound)
+                ansible_out[i] = f"[{lower_bound}:{upper_bound}]"
 
         return ".".join(ansible_out)
 
