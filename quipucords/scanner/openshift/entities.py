@@ -68,6 +68,34 @@ class OCPBaseEntity(BaseModel):
         return kind
 
 
+class OCPCluster(OCPBaseEntity):
+    """Entity representing OpenShift Cluster."""
+
+    uuid: str
+    errors: Dict[str, OCPError] = Field(default_factory=dict)
+
+
+class OCPNode(OCPBaseEntity):
+    """Entity representing OpenShift Node."""
+
+    name: str
+    creation_timestamp: str
+    labels: Dict[str, str]
+    addresses: List[dict]
+    cpu_capacity: str
+    cpu_allocatable: str
+    memory_capacity: str
+    memory_allocatable: str
+    pods_capacity: str
+    pods_allocatable: str
+    architecture: str
+    kernel_version: str
+    machine_id: str
+    operating_system: str
+    taints: List[dict]
+    errors: Dict[str, OCPError] = Field(default_factory=dict)
+
+
 class OCPProject(OCPBaseEntity):
     """Entity representing OpenShift Projects/Namespaces."""
 

@@ -19,9 +19,16 @@ from kubernetes.client import (
     Configuration,
     CoreV1Api,
 )
+from kubernetes.dynamic import DynamicClient
 from urllib3.exceptions import MaxRetryError
 
-from scanner.openshift.entities import OCPDeployment, OCPError, OCPProject
+from scanner.openshift.entities import (
+    OCPCluster,
+    OCPDeployment,
+    OCPError,
+    OCPNode,
+    OCPProject,
+)
 
 logger = getLogger(__name__)
 
@@ -66,6 +73,7 @@ class OpenShiftApi:
         """Initialize OpenShiftApi."""
         configuration.verify_ssl = ssl_verify
         self._api_client = ApiClient(configuration=configuration)
+        self._dynamic_client = DynamicClient(self._api_client)
 
     @classmethod
     def from_auth_token(
@@ -104,6 +112,20 @@ class OpenShiftApi:
             project_list.append(ocp_project)
         return project_list
 
+    def retrieve_nodes(self, **kwargs) -> List[OCPNode]:
+        """Retrieve nodes under OCP host."""
+        node_list = []
+        for node in self._list_nodes(**kwargs):
+            ocp_node = self._init_ocp_nodes(node)
+            node_list.append(ocp_node)
+        return node_list
+
+    def retrieve_cluster(self, **kwargs) -> OCPCluster:
+        """Retrieve cluster under OCP host."""
+        cluster_full_info = self._return_cluster(**kwargs)
+        cluster_entity = self._init_cluster(cluster_full_info)
+        return cluster_entity
+
     def retrieve_deployments(self, project_name, **kwargs) -> List[OCPDeployment]:
         """Retrieve deployments under project 'project_name'."""
         deployments_raw = self._list_deployments(project_name, **kwargs)
@@ -118,13 +140,31 @@ class OpenShiftApi:
         return CoreV1Api(api_client=self._api_client)
 
     @cached_property
+    def _node_api(self):
+        return self._dynamic_client.get(api_version="v1", kind="Node")
+
+    @cached_property
     def _apps_api(self):
         return AppsV1Api(api_client=self._api_client)
+
+    @cached_property
+    def _cluster_api(self):
+        return self._dynamic_client.get(
+            api_version="config.openshift.io/v1", kind="ClusterVersion"
+        )
 
     @catch_k8s_exception
     @wraps(CoreV1Api.list_namespace)
     def _list_projects(self, **kwargs):
         return self._core_api.list_namespace(**kwargs)
+
+    @catch_k8s_exception
+    def _list_nodes(self, **kwargs):
+        return self._node_api.get(**kwargs).items
+
+    @catch_k8s_exception
+    def _return_cluster(self, **kwargs):
+        return self._cluster_api.get(**kwargs).items[0]
 
     @catch_k8s_exception
     @wraps(AppsV1Api.list_namespaced_deployment)
@@ -139,6 +179,30 @@ class OpenShiftApi:
         if retrieve_all:
             self.add_deployments_to_project(ocp_project)
         return ocp_project
+
+    def _init_ocp_nodes(self, node) -> OCPNode:
+        ocp_nodes = OCPNode(
+            name=node.metadata.name,
+            creation_timestamp=node.metadata.creationTimestamp,
+            labels=node.metadata.labels,
+            addresses=node.status["addresses"],
+            cpu_capacity=node.status["capacity"]["cpu"],
+            cpu_allocatable=node.status["allocatable"]["cpu"],
+            memory_capacity=node.status["capacity"]["memory"],
+            memory_allocatable=node.status["allocatable"]["memory"],
+            pods_capacity=node.status["capacity"]["pods"],
+            pods_allocatable=node.status["allocatable"]["pods"],
+            architecture=node.status["nodeInfo"]["architecture"],
+            kernel_version=node.status["nodeInfo"]["kernelVersion"],
+            machine_id=node.status["nodeInfo"]["machineID"],
+            operating_system=node.status["nodeInfo"]["operatingSystem"],
+            taints=node.spec["taints"],
+        )
+        return ocp_nodes
+
+    def _init_cluster(self, cluster) -> OCPCluster:
+        ocp_cluster = OCPCluster(uuid=cluster["spec"]["clusterID"])
+        return ocp_cluster
 
     def add_deployments_to_project(self, ocp_project, **kwargs):
         """Retrieve deployments and add to OCPProject."""

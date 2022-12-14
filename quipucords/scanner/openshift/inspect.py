@@ -15,7 +15,7 @@ from django.db import transaction
 
 from api.models import RawFact, ScanTask, SystemInspectionResult
 from scanner.exceptions import ScanFailureError
-from scanner.openshift.entities import OCPBaseEntity, OCPProject
+from scanner.openshift.entities import OCPBaseEntity, OCPNode
 from scanner.openshift.task import OpenShiftTaskRunner
 
 
@@ -33,26 +33,34 @@ class InspectTaskRunner(OpenShiftTaskRunner):
         self._check_prerequisites()
 
         ocp_client = self.get_ocp_client(self.scan_task)
-        project_list = ocp_client.retrieve_projects(
-            retrieve_all=False,
+        nodes_list = ocp_client.retrieve_nodes(
             timeout_seconds=settings.QPC_INSPECT_TASK_TIMEOUT,
         )
 
-        self._init_stats(project_list)
+        self._init_stats(nodes_list)
 
-        for project in project_list:
+        for node in nodes_list:
             # check if scanjob is paused or cancelled
             self.check_for_interrupt(manager_interrupt)
-            ocp_client.add_deployments_to_project(
-                project,
-                timeout_seconds=settings.QPC_INSPECT_TASK_TIMEOUT,
-            )
-            self._save_results(project)
+            self._save_results(node)
 
-        self.log(f"Collected facts for {self.scan_task.systems_scanned} projects.")
-        self.log(
-            f"Failed collecting facts for {self.scan_task.systems_failed} projects."
-        )
+        self.log(f"Collected facts for {self.scan_task.systems_scanned} nodes.")
+        self.log(f"Failed collecting facts for {self.scan_task.systems_failed} nodes.")
+
+        # cluster = get_cluster()
+        # project_list = ocp_client.retrieve_projects(
+        #     retrieve_all=False,
+        #     timeout_seconds=settings.QPC_INSPECT_TASK_TIMEOUT,
+        # )
+        # self._init_stats(project_list)
+        # for project in project_list:
+        #     # check if scanjob is paused or cancelled
+        #     self.check_for_interrupt(manager_interrupt)
+        #     ocp_client.add_deployments_to_project(
+        #         project,
+        #         timeout_seconds=settings.QPC_INSPECT_TASK_TIMEOUT,
+        #     )
+        # save_cluster(cluster, project_list)
 
         if self.scan_task.systems_scanned and self.scan_task.systems_failed:
             return self.PARTIAL_SUCCESS_MESSAGE, ScanTask.COMPLETED
@@ -65,31 +73,31 @@ class InspectTaskRunner(OpenShiftTaskRunner):
         if connect_scan_task.status != ScanTask.COMPLETED:
             raise ScanFailureError("Prerequisite scan have failed.")
 
-    def _init_stats(self, project_list):
+    def _init_stats(self, nodes_list):
         return self.scan_task.update_stats(
             "INITIAL OCP INSPECT STATS.",
-            sys_count=len(project_list),
+            sys_count=len(nodes_list),
             sys_scanned=0,
             sys_failed=0,
             sys_unreachable=0,
         )
 
     @transaction.atomic
-    def _save_results(self, project: OCPProject):
-        system_result = self._persist_facts(project)
+    def _save_results(self, node: OCPNode):
+        system_result = self._persist_facts(node)
         increment_kwargs = self._get_increment_kwargs(system_result.status)
-        self.scan_task.increment_stats(project.name, **increment_kwargs)
+        self.scan_task.increment_stats(node.name, **increment_kwargs)
 
-    def _persist_facts(self, project: OCPProject) -> SystemInspectionResult:
-        inspection_status = self._infer_inspection_status(project)
+    def _persist_facts(self, node: OCPNode) -> SystemInspectionResult:
+        inspection_status = self._infer_inspection_status(node)
         sys_result = SystemInspectionResult(
-            name=project.name,
+            name=node.name,
             status=inspection_status,
             source=self.scan_task.source,
             task_inspection_result=self.scan_task.inspection_result,
         )
         sys_result.save()
-        raw_fact = self._entity_as_raw_fact(project, sys_result)
+        raw_fact = self._entity_as_raw_fact(node, sys_result)
         raw_fact.save()
         return sys_result
 
@@ -102,8 +110,8 @@ class InspectTaskRunner(OpenShiftTaskRunner):
             system_inspection_result=inspection_result,
         )
 
-    def _infer_inspection_status(self, project: OCPProject):
-        if project.errors:
+    def _infer_inspection_status(self, node: OCPNode):
+        if node.errors:
             return SystemInspectionResult.FAILED
         return SystemInspectionResult.SUCCESS
 
