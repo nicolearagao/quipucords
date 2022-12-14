@@ -32,6 +32,36 @@ class OCPProject(ToDictMixin):
 
 
 @dataclass
+class OCPCluster(ToDictMixin):
+    """Entity representing OpenShift Cluster."""
+
+    uuid: str
+    errors: Dict[str, "OCPError"] = field(default_factory=dict)
+
+
+@dataclass
+class OCPNode(ToDictMixin):
+    """Entity representing OpenShift Node."""
+
+    name: str
+    creation_timestamp: str
+    labels: Dict[str, str]
+    addresses: List[dict]
+    cpu_capacity: str
+    cpu_allocatable: str
+    memory_capacity: str
+    memory_allocatable: str
+    pods_capacity: str
+    pods_allocatable: str
+    architecture: str
+    kernel_version: str
+    machine_id: str
+    operating_system: str
+    taints: List[dict]
+    errors: Dict[str, "OCPError"] = field(default_factory=dict)
+
+
+@dataclass
 class OCPDeployment(ToDictMixin):
     """Entity representing OpenShift Deployments."""
 
