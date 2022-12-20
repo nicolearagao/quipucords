@@ -182,6 +182,13 @@ class SystemFingerprint(models.Model):
         max_length=48, unique=False, blank=True, null=True
     )
 
+    # OCP facts
+    roles = models.CharField(max_length=128, unique=False, blank=True, null=True)
+    is_schedulable = models.CharField(
+        max_length=128, unique=False, blank=True, null=True
+    )
+    allocatable_cpu = models.FloatField(unique=False, blank=True, null=True)
+
     @classmethod
     def get_valid_fact_names(cls):
         """All expected fact names."""

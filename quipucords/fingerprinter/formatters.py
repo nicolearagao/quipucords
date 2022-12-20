@@ -6,6 +6,7 @@
 # FOR A PARTICULAR PURPOSE. You should have received a copy of GPLv3
 # along with this software; if not, see
 # https://www.gnu.org/licenses/gpl-3.0.txt.
+import re
 
 """Fingerprint formatters."""
 
@@ -32,3 +33,51 @@ def gigabytes_to_bytes(gigabytes):
     if gigabytes is None:
         return None
     return gigabytes * (1024**3)
+
+
+def convert_memory_fact_to_bytes(memory_capacity):
+    binary_unit = re.compile("^\d+([KMG]i)$")
+    try:
+        m = binary_unit.match(memory_capacity)
+    except:
+        return memory_capacity
+    if not m:
+        return memory_capacity
+    power = {
+        "Ki": 1,
+        "Mi": 2,
+        "Gi": 3,
+    }[m.group(1)]
+    return int(memory_capacity.replace(m.group(1), "")) * 1024**power
+
+
+def extract_ip_addresses(addresses):
+    list_ips = []
+    for address in addresses:
+        if "ip" or "IP" in address["type"]:
+            list_ips.append(address["address"])
+    return list_ips
+
+
+def get_node_roles(taints):
+    # assuming we are going to follow the taint path to get this info
+    node_roles = []
+    if taints:
+        for taint in taints:
+            node_roles.append(taint["key"])
+    return node_roles
+
+
+def is_schedulable(taints):
+    # assuming we are going to follow the taint path to get this info
+    node_effects = []
+    if taints:
+        for taint in taints:
+            node_effects.append(taint["effect"])
+    return node_effects
+
+
+def convert_architecture(architecture):
+    # to be impplemented
+    # https://kubernetes.io/docs/reference/labels-annotations-taints/#kubernetes-io-arch
+    pass
