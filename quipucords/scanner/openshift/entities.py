@@ -73,6 +73,7 @@ class OCPCluster(OCPBaseEntity):
 
     uuid: str
     errors: Dict[str, OCPError] = Field(default_factory=dict)
+    _kind = "cluster"
 
 
 class OCPNode(OCPBaseEntity):
@@ -94,6 +95,7 @@ class OCPNode(OCPBaseEntity):
     operating_system: str
     taints: List[dict]
     errors: Dict[str, OCPError] = Field(default_factory=dict)
+    _kind = "node"
 
 
 class OCPProject(OCPBaseEntity):
