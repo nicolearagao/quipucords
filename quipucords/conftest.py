@@ -28,8 +28,6 @@ def scan_manager(mocker):
     _manager = DummyScanManager()
     mocker.patch("scanner.manager.Manager", DummyScanManager)
     mocker.patch("scanner.manager.SCAN_MANAGER", _manager)
-    mocker.patch("api.signal.scanjob_signal.manager.Manager", DummyScanManager)
-    mocker.patch("api.signal.scanjob_signal.manager.SCAN_MANAGER", _manager)
     yield _manager
 
 
