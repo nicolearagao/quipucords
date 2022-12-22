@@ -17,6 +17,7 @@ from scanner.openshift.api import OpenShiftApi
 from scanner.openshift.entities import OCPDeployment, OCPError, OCPProject
 from tests.asserts import assert_elements_type
 
+# em vez de ter os valores fakes, retrieve values from env
 FULL_ACCESS_PROJECT = "awesome_project"
 FORBIDDEN_PROJECT = "forbidden_project"
 OPENSHIFT_HOST = "fake.openshift.host"
@@ -36,7 +37,6 @@ class TestData:
 
     They are based on real data and then were tweaked/reduced for testing purposes.
     """
-
     API_RESOURCE_LIST = data_path("api_resource_list.json")
     # deployments of "awesome_project", which we have at least read access
     DEPLOYMENTS_VALID = data_path("deployment_list_valid.json")
@@ -64,6 +64,18 @@ def ocp_client():
         port=OPENSHIFT_PORT,
         protocol=OPENSHIFT_PROTOCOL,
     )
+
+@pytest.mark.vcr
+def test_list_nodes():
+    client = OpenShiftApi.from_auth_token(
+        auth_token="",
+        host="",
+        port=6443,
+        protocol="https",
+        ssl_verify=False,
+
+    )
+    client._list_nodes()
 
 
 def test_from_auth_token(mocker):

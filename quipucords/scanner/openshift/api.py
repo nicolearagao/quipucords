@@ -144,7 +144,7 @@ class OpenShiftApi:
 
     @cached_property
     def _node_api(self):
-        return self._dynamic_client.get(api_version="v1", kind="Node")
+        return self._dynamic_client.resources.get(api_version="v1", kind="Node")
 
     @cached_property
     def _apps_api(self):
