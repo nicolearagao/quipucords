@@ -1,3 +1,7 @@
+from datetime import datetime
+from multiprocessing import Process
+
+
 class SingletonMeta(type):
     """
     Metaclass designed to force classes to behave as singletons.
@@ -19,8 +23,11 @@ class SingletonMeta(type):
 
 
 class DummyScanManager(metaclass=SingletonMeta):
+    WORK_TIMEOUT_SECONDS = 9
+
     def __init__(self):
         self._queue = []
+        self._start_dt = None
 
     def put(self, job):
         self._queue.append(job)
@@ -28,12 +35,24 @@ class DummyScanManager(metaclass=SingletonMeta):
     def is_alive(self):
         return True
 
+    @property
+    def timed_out(self):
+        elapsed_time = datetime.now() - self._start_dt
+        if elapsed_time.seconds > self.WORK_TIMEOUT_SECONDS:
+            return True
+        return False
+
     def work(self):
+        self._start_dt = datetime.now()
+        if self.timed_out:
+            return
         while self._queue:
-            current_job = self._queue.pop()
+            current_job: Process = self._queue.pop()
             current_job.start()
             while current_job.exitcode is None:
-                ...
+                if self.timed_out:
+                    current_job.kill()
+                    return
 
     def kill(self, job, command):
         ...
