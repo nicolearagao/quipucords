@@ -21,9 +21,6 @@ import pytest
 from tests.utils.http import BaseUrlClient
 
 
-
-
-
 @pytest.fixture(autouse=True)
 def scan_manager(mocker):
     from tests.dummy_scan_manager import DummyScanManager

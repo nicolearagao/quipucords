@@ -1,8 +1,8 @@
 class SingletonMeta(type):
     """
     Metaclass designed to force classes to behave as singletons.
-    
-    Shamelesly copied from 
+
+    Shamelesly copied from https://refactoring.guru/design-patterns/singleton
     """
 
     _instances = {}
