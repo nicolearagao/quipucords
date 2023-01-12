@@ -103,14 +103,6 @@ class OCPNode(OCPBaseEntity):
     errors: Dict[str, OCPError] = Field(default_factory=dict)
     _kind = "node"
 
-    def to_dict(self):
-        data = self.dict()
-        current_data = self.creation_timestamp
-        dt_iso8601 = current_data.strftime("%Y-%m-%dT%H:%M:%S+00:00")
-        data["creation_timestamp"] = dt_iso8601
-
-        return data
-
 
 class OCPProject(OCPBaseEntity):
     """Entity representing OpenShift Projects/Namespaces."""

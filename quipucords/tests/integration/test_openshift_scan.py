@@ -125,6 +125,20 @@ def expected_projects():
     ]
 
 
+@pytest.fixture
+def expected_facts(expected_projects, expected_node, expected_cluster):
+    projects_list = [p.dict() for p in expected_projects]
+    _node = expected_node[0].dict()
+    _node["creation_timestamp"] = _node["creation_timestamp"].isoformat()
+    return [
+        {"node": _node},
+        {
+            "cluster": expected_cluster.dict(),
+            "namespace": projects_list,
+        },
+    ]
+
+
 @pytest.fixture(autouse=True)
 def patched_openshift_client(
     mocker, expected_projects, expected_node, expected_cluster
@@ -235,10 +249,8 @@ class TestOpenShiftScan:
     def test_details_report(
         self,
         django_client,
-        expected_projects,
-        expected_node,
-        expected_cluster,
         report_id,
+        expected_facts,
     ):
         """Sanity check details report."""
         response = django_client.get(f"reports/{report_id}/details/")
@@ -261,13 +273,7 @@ class TestOpenShiftScan:
         }
         assert report_details_dict == expected_details_report
         report_details_facts = report_details_dict[SOURCES_KEY][0]["facts"]
-        projects_list = [p.dict() for p in expected_projects]
-        node_list = expected_node[0].to_dict()
-        expected_report = [
-            {"node": node_list},
-            {"cluster": expected_cluster.dict(), "namespace": projects_list},
-        ]
-        assert report_details_facts == expected_report
+        assert report_details_facts == expected_facts
 
     @pytest.fixture
     def expected_fingerprint_metadata(self, fingerprint_fact_map):
