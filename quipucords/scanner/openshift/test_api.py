@@ -117,6 +117,7 @@ def test_dynamic_client_cache(ocp_client: OpenShiftApi):
     # just acessing the attribute will trigger "introspection" requests at ocp
     ocp_client._dynamic_client
     ocp_client._cluster_api
+    ocp_client._node_api
     assert Path(ocp_client._discoverer_cache_file).exists()
 
 
@@ -135,6 +136,14 @@ def test_retrieve_cluster(ocp_client: OpenShiftApi):
     assert isinstance(cluster, OCPCluster)
     assert UUID(cluster.uuid)
     assert cluster.version
+
+
+@pytest.mark.vcr_primer(VCRCassettes.OCP_NODE, VCRCassettes.OCP_DISCOVERER_CACHE)
+def test_node_api(ocp_client: OpenShiftApi):
+    """Test _node_api."""
+    # pylint: disable=protected-access
+    nodes = ocp_client._list_nodes()
+    assert nodes
 
 
 def test_from_auth_token(mocker):
