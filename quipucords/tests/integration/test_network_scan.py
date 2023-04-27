@@ -380,6 +380,12 @@ class TestNetworkScan:
             "redhat_packages_gpg_is_redhat": True,
             "date_machine_id": datetime.utcnow().date().isoformat(),
             "user_has_sudo": True,
+            "installed_products": [
+                {
+                    "id": "69",
+                    "name": "Red Hat Enterprise Linux Server"
+                }
+            ],
         }
         assert report_details_facts | some_expected_facts == report_details_facts
 
