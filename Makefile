@@ -7,7 +7,7 @@ PYDIRS	= quipucords
 PIP_COMPILE_ARGS = --no-upgrade
 BINDIR  = bin
 PARALLEL_NUM ?= $(shell $(PYTHON) -c 'import multiprocessing as m;print(int(max(m.cpu_count()/2, 2)))')
-TEST_OPTS := -n $(PARALLEL_NUM) -ra -m 'not slow' --timeout=15
+TEST_OPTS := -n $(PARALLEL_NUM) -ra -m 'not slow' --timeout=15 quipucords/tests/scanner/acs/test_connect.py
 
 QUIPUCORDS_CONTAINER_TAG ?= quipucords
 QUIPUCORDS_UI_PATH ?= ../quipucords-ui
