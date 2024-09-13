@@ -119,10 +119,23 @@ class CredentialSerializer(NotEmptySerializer):
     def to_representation(self, instance):
         """Overload DRF representation method to mask encrypted fields."""
         _data = super().to_representation(instance)
+        _data["auth_type"] = self._get_auth_type(instance)        
         for field in Credential.ENCRYPTED_FIELDS:
             if field in _data:
                 _data[field] = ENCRYPTED_DATA_MASK
         return _data
+    
+    def _get_auth_type(self, instance):
+        """Determine the authentication type based on the instance fields."""
+        if instance.auth_token:
+            return "Token"
+        elif instance.username and instance.password:
+            return "Username and Password"
+        elif instance.username and instance.ssh_key:
+            return "SSH Key"
+        elif instance.username and instance.ssh_keyfile:
+            return "SSH Keyfile"
+        return "Unknown"    
 
 
 class AuthTokenSerializer(CredentialSerializer):
